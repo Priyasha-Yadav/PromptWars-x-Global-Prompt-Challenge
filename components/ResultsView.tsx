@@ -87,7 +87,7 @@ export default function ResultsView({ result, originalText, location, category, 
       {mainTab === "Draft" && (
         <>
           {/* Before / After */}
-          <motion.div {...fade(2)} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+          <motion.div {...fade(2)} className="grid-responsive-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
             <div className="glass" style={{ padding: 18 }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>✦ Original Complaint</div>
               <p style={{ fontSize: 13, lineHeight: 1.7, color: "var(--text-muted)", whiteSpace: "pre-wrap" }}>{originalText}</p>
@@ -109,7 +109,7 @@ export default function ResultsView({ result, originalText, location, category, 
           </motion.div>
 
           {/* Score + Priority + Department */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
+          <div className="grid-responsive-3" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
             <motion.div {...fade(4)} className="glass" style={{ padding: 18, display: "flex", flexDirection: "column", alignItems: "center" }}>
               <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 10 }}>Complaint Strength</div>
               <ScoreRing score={result.score} />
@@ -151,7 +151,7 @@ export default function ResultsView({ result, originalText, location, category, 
           </motion.div>
 
           {/* Escalation + Evidence */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+          <div className="grid-responsive-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
             <motion.div {...fade(8)} className="glass" style={{ padding: 18 }}>
               <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Escalation Path</div>
               {result.escalation.map((step, i) => (

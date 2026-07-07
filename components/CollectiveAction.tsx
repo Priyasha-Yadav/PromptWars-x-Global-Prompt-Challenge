@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useSyncExternalStore } from "react";
 import { motion } from "framer-motion";
 import { Users, Flame, FileText, Loader2, Copy, Check } from "lucide-react";
 
@@ -17,6 +17,30 @@ interface Props {
   current: { text: string; location: string; category: string; keywords: string[]; severity: number };
 }
 
+const STORAGE_KEY = "civic_complaints";
+
+function readStoredComplaints(): StoredComplaint[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+}
+
+function subscribeStoredComplaints(callback: () => void) {
+  window.addEventListener("storage", callback);
+  window.addEventListener("civic-complaints-changed", callback as EventListener);
+
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener("civic-complaints-changed", callback as EventListener);
+  };
+}
+
+function useStoredComplaints() {
+  return useSyncExternalStore(subscribeStoredComplaints, readStoredComplaints, () => []);
+}
+
 function pressureScore(reports: number, severity: number, daysPending: number) {
   return Math.min(100, Math.round((reports * severity * Math.log(daysPending + 1)) / 3));
 }
@@ -31,26 +55,32 @@ function similarity(a: StoredComplaint, b: { location: string; category: string;
 }
 
 export default function CollectiveAction({ current }: Props) {
-  const [complaints, setComplaints] = useState<StoredComplaint[]>([]);
-  const [similar, setSimilar] = useState<StoredComplaint[]>([]);
   const [petition, setPetition] = useState<{ petition: string; title: string; demands: string[] } | null>(null);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+  const complaints = useStoredComplaints();
 
   useEffect(() => {
-    const stored: StoredComplaint[] = JSON.parse(localStorage.getItem("civic_complaints") || "[]");
-    // Add current complaint if not already stored
-    const exists = stored.find(c => c.text === current.text);
-    let updated = stored;
+    const exists = complaints.find(c => c.text === current.text);
+
     if (!exists) {
       const newEntry: StoredComplaint = { id: Date.now().toString(), ...current, timestamp: Date.now() };
-      updated = [newEntry, ...stored].slice(0, 50);
-      localStorage.setItem("civic_complaints", JSON.stringify(updated));
+      const updated = [newEntry, ...complaints].slice(0, 50);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      window.dispatchEvent(new Event("civic-complaints-changed"));
     }
-    setComplaints(updated);
-    const sim = updated.filter(c => c.text !== current.text && similarity(c, current) >= 40);
-    setSimilar(sim);
-  }, [current]);
+  }, [current, complaints]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setNow(Date.now());
+    }, 60000);
+
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const similar = complaints.filter(c => c.text !== current.text && similarity(c, current) >= 40);
 
   const daysPending = 42; // demo value
   const totalReports = similar.length + 1;
@@ -132,7 +162,7 @@ export default function CollectiveAction({ current }: Props) {
             {similar.map(c => (
               <div key={c.id} style={{ padding: "10px 12px", borderRadius: 8, background: "rgba(255,255,255,0.03)", border: "1px solid var(--border)" }}>
                 <div style={{ fontSize: 13, marginBottom: 3 }}>{c.text.slice(0, 100)}{c.text.length > 100 ? "…" : ""}</div>
-                <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{c.category} · {c.location} · {Math.round((Date.now() - c.timestamp) / 60000)}m ago</div>
+                <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{c.category} · {c.location} · {Math.max(1, Math.round((now - c.timestamp) / 60000))}m ago</div>
               </div>
             ))}
           </div>

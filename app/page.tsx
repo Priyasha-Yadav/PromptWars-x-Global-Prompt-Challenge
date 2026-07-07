@@ -1,112 +1,95 @@
-"use client";
-import { useState } from "react";
-import { motion } from "framer-motion";
-import InputForm from "../components/InputForm";
-import ResultsView from "../components/ResultsView";
-import TranslatorTool from "../components/TranslatorTool";
-import ConfidenceCoach from "../components/ConfidenceCoach";
+import Hero from "../components/Hero";
+import Link from "next/link";
+import { ArrowRight, FileText, Languages, MessageSquareMore } from "lucide-react";
 
-interface SimilarComplaint { category: string; issue: string; resolvedIn: string; department: string; resolution: string }
-interface Result {
-  summary: string; professional: string; emotional: string; legal: string;
-  department: string; escalation: string[]; evidence: string[];
-  priority: string; keywords: string[]; score: number;
-  scoreFeedback: string; improvements: string[];
-  impact: {
-    resolutionLikelihood: "Low" | "Medium" | "High";
-    likelihoodReason: string; expectedTimeline: string; timelineCategory: string;
-    similarComplaints: SimilarComplaint[];
-    successStory: { problem: string; action: string; outcome: string };
-  };
-  collective: { clusterKeywords: string[]; severityScore: number };
-}
-
-type NavTab = "draft" | "translator" | "coach";
-
-const NAV: { key: NavTab; label: string; icon: string }[] = [
-  { key: "draft", label: "Civic Draft", icon: "✍️" },
-  { key: "translator", label: "Gov Speak Translator", icon: "🔄" },
-  { key: "coach", label: "Confidence Coach", icon: "🎯" },
+const toolCards = [
+  {
+    href: "/draft",
+    icon: FileText,
+    title: "Civic Draft",
+    description: "Turn a rough complaint into a formal submission, citizen appeal, and legal-style text — all in one go.",
+  },
+  {
+    href: "/translate",
+    icon: Languages,
+    title: "Gov Translator",
+    description: "Decode dense government language into plain words, or polish your text for official submission.",
+  },
+  {
+    href: "/coach",
+    icon: MessageSquareMore,
+    title: "Confidence Coach",
+    description: "Roleplay with a simulated officer or generate ready-to-file templates for RTIs, appeals, and escalations.",
+  },
 ];
 
 export default function Home() {
-  const [nav, setNav] = useState<NavTab>("draft");
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<Result | null>(null);
-  const [originalText, setOriginalText] = useState("");
-  const [formData, setFormData] = useState({ location: "", category: "" });
-
-  async function handleSubmit({ text, location, category }: { text: string; location: string; category: string }) {
-    setLoading(true);
-    setOriginalText(text);
-    setFormData({ location, category });
-    try {
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, location, category }),
-      });
-      setResult(await res.json());
-    } finally {
-      setLoading(false);
-    }
-  }
-
   return (
-    <main style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-      {/* Ambient blobs */}
-      <div style={{ position: "fixed", inset: 0, overflow: "hidden", pointerEvents: "none", zIndex: 0 }}>
-        <div style={{ position: "absolute", top: "-20%", left: "-10%", width: 600, height: 600, borderRadius: "50%", background: "radial-gradient(circle, rgba(59,130,246,0.07) 0%, transparent 70%)" }} />
-        <div style={{ position: "absolute", bottom: "-20%", right: "-10%", width: 600, height: 600, borderRadius: "50%", background: "radial-gradient(circle, rgba(139,92,246,0.07) 0%, transparent 70%)" }} />
-      </div>
+    <main className="page-section page-section--landing">
+      <Hero />
 
-      {/* Top Nav */}
-      <nav style={{ position: "sticky", top: 0, zIndex: 10, borderBottom: "1px solid var(--border)", background: "rgba(10,15,26,0.85)", backdropFilter: "blur(16px)", padding: "0 24px" }}>
-        <div style={{ maxWidth: 900, margin: "0 auto", display: "flex", alignItems: "center", gap: 4, height: 56 }}>
-          <span className="gradient-text" style={{ fontSize: 18, fontWeight: 800, marginRight: 24, letterSpacing: -0.5 }}>CivicDraft AI</span>
-          {NAV.map(n => (
-            <button key={n.key}
-              onClick={() => setNav(n.key)}
-              style={{
-                padding: "6px 14px", borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: "pointer", border: "none",
-                background: nav === n.key ? "rgba(59,130,246,0.15)" : "transparent",
-                color: nav === n.key ? "var(--accent)" : "var(--text-muted)",
-                transition: "all 0.2s",
-              }}>
-              {n.icon} {n.label}
-            </button>
-          ))}
+      {/* Tool grid */}
+      <section className="page-section__block">
+        <div className="section-heading">
+          <span className="eyebrow">Focused workflows</span>
+          <h2>Three tools, one purpose.</h2>
+          <p>
+            Each tool lives on its own route so you stay in flow — no tab switching, no context loss.
+          </p>
         </div>
-      </nav>
 
-      {/* Content */}
-      <div style={{ position: "relative", zIndex: 1, flex: 1, padding: "32px 16px" }}>
-        {nav === "draft" && (
-          result
-            ? <ResultsView result={result} originalText={originalText} location={formData.location} category={formData.category} onReset={() => setResult(null)} />
-            : <div style={{ display: "flex", justifyContent: "center", paddingTop: 20 }}>
-                <InputForm onSubmit={handleSubmit} loading={loading} />
-              </div>
-        )}
-        {nav === "translator" && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ maxWidth: 800, margin: "0 auto" }}>
-            <div style={{ marginBottom: 20 }}>
-              <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>🔄 Government Speak Translator</h2>
-              <p style={{ fontSize: 14, color: "var(--text-muted)" }}>Translate between citizen language and official government language — instantly.</p>
+        <div className="tool-grid">
+          {toolCards.map((card) => {
+            const Icon = card.icon;
+
+            return (
+              <Link key={card.href} href={card.href} className="tool-card glass">
+                <div className="tool-card__icon">
+                  <Icon size={18} />
+                </div>
+                <div className="tool-card__body">
+                  <h3>{card.title}</h3>
+                  <p>{card.description}</p>
+                </div>
+                <span className="tool-card__link">
+                  Open tool <ArrowRight size={14} />
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Banner */}
+      <section className="page-section__block">
+        <div className="page-banner glass-accent">
+          <div style={{ flex: 1 }}>
+            <span className="eyebrow">Built for production</span>
+            <h2>
+              Purpose-built routing, intentional hierarchy, and API-powered AI.
+            </h2>
+            <p>
+              The same AI workflows, now with a product-grade experience — dedicated URLs,
+              shared chrome, and a consistent visual system.
+            </p>
+          </div>
+
+          <div className="page-banner__stats">
+            <div>
+              <span>3</span>
+              <p>Dedicated routes</p>
             </div>
-            <TranslatorTool />
-          </motion.div>
-        )}
-        {nav === "coach" && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ maxWidth: 800, margin: "0 auto" }}>
-            <div style={{ marginBottom: 20 }}>
-              <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>🎯 Civic Confidence Coach</h2>
-              <p style={{ fontSize: 14, color: "var(--text-muted)" }}>Practice filing complaints with a simulated officer, or generate ready-to-use letter templates.</p>
+            <div>
+              <span>1</span>
+              <p>Shared shell</p>
             </div>
-            <ConfidenceCoach />
-          </motion.div>
-        )}
-      </div>
+            <div>
+              <span>Live</span>
+              <p>Gemini-powered</p>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
   );
 }
