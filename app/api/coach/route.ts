@@ -1,40 +1,53 @@
-import { GoogleGenAI } from "@google/genai";
 import { NextRequest, NextResponse } from "next/server";
+import { generateJSON, generateText } from "@/lib/gemini";
+import { validateCoach, type TemplateType } from "@/lib/validation";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+const TEMPLATE_PROMPTS: Record<TemplateType, string> = {
+  RTI: "Generate a Right to Information (RTI) application under the RTI Act 2005 for an Indian citizen.",
+  Complaint: "Generate a formal complaint letter to a government department.",
+  Appeal: "Generate an appeal letter against a rejected government application.",
+  Reminder: "Generate a reminder letter for a pending complaint that has not been resolved.",
+  Escalation: "Generate an escalation letter to a senior officer when the complaint is ignored.",
+};
+
+const OFFICER_SYSTEM_PROMPT =
+  "You are a strict but fair municipal officer in India. The citizen is filing a complaint. Ask realistic clarifying questions one at a time. After 3 exchanges, give brief feedback on how well the citizen communicated. Keep responses under 3 sentences.";
 
 export async function POST(req: NextRequest) {
-  const { mode, text, history, templateType } = await req.json();
-
-  if (mode === "roleplay") {
-    const systemPrompt = `You are a strict but fair municipal officer in India. The citizen is filing a complaint. Ask realistic clarifying questions one at a time. After 3 exchanges, give brief feedback on how well the citizen communicated. Keep responses under 3 sentences.`;
-    const msgs = [
-      { role: "user" as const, parts: [{ text: systemPrompt + "\n\nCitizen says: " + text }] },
-      ...(history || []),
-    ];
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: msgs,
-    });
-    return NextResponse.json({ reply: response.text });
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  if (mode === "template") {
-    const templates: Record<string, string> = {
-      RTI: "Generate a Right to Information (RTI) application under the RTI Act 2005 for an Indian citizen.",
-      Complaint: "Generate a formal complaint letter to a government department.",
-      Appeal: "Generate an appeal letter against a rejected government application.",
-      Reminder: "Generate a reminder letter for a pending complaint that has not been resolved.",
-      Escalation: "Generate an escalation letter to a senior officer when the complaint is ignored.",
-    };
-    const prompt = `${templates[templateType] || templates.Complaint} The issue is: "${text}". Return JSON: { "template": "full letter text", "instructions": ["instruction1","instruction2","instruction3"] }`;
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-      config: { responseMimeType: "application/json" },
-    });
-    return NextResponse.json(JSON.parse(response.text!));
+  const validation = validateCoach(body);
+  if (!validation.ok) {
+    return NextResponse.json({ error: validation.error }, { status: validation.status });
   }
 
-  return NextResponse.json({ error: "Invalid mode" }, { status: 400 });
+  const { mode, text, templateType, history } = validation.data;
+
+  try {
+    if (mode === "roleplay") {
+      const contents = [
+        { role: "user" as const, parts: [{ text: `${OFFICER_SYSTEM_PROMPT}\n\nCitizen says: ${text}` }] },
+        ...(history as { role: "user" | "model"; parts: { text: string }[] }[] ?? []),
+      ];
+      const reply = await generateText(contents);
+      return NextResponse.json({ reply });
+    }
+
+    // mode === "template"
+    const basePrompt = TEMPLATE_PROMPTS[templateType as TemplateType];
+    const prompt = `${basePrompt} The issue is: "${text}". Return JSON: { "template": "full letter text", "instructions": ["instruction1","instruction2","instruction3"] }`;
+    const json = await generateJSON(prompt);
+    return NextResponse.json(json);
+  } catch (err) {
+    console.error("[/api/coach]", err);
+    return NextResponse.json(
+      { error: "Coach request failed. Please try again." },
+      { status: 502 }
+    );
+  }
 }

@@ -1,12 +1,25 @@
-import { GoogleGenAI } from "@google/genai";
 import { NextRequest, NextResponse } from "next/server";
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+import { generateJSON } from "@/lib/gemini";
+import { validatePetition } from "@/lib/validation";
 
 export async function POST(req: NextRequest) {
-  const { complaints, location, category } = await req.json();
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+  }
 
-  const complaintList = complaints.map((c: string, i: number) => `Complaint ${i + 1}: ${c}`).join("\n");
+  const validation = validatePetition(body);
+  if (!validation.ok) {
+    return NextResponse.json({ error: validation.error }, { status: validation.status });
+  }
+
+  const { complaints, location, category } = validation.data;
+
+  const complaintList = complaints
+    .map((c, i) => `Complaint ${i + 1}: ${c}`)
+    .join("\n");
 
   const prompt = `Generate a formal collective petition letter representing these citizen complaints about ${category} issues in ${location}.
 
@@ -19,11 +32,14 @@ Return JSON:
   "demands": ["demand1", "demand2", "demand3"]
 }`;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
-    contents: prompt,
-    config: { responseMimeType: "application/json" },
-  });
-
-  return NextResponse.json(JSON.parse(response.text!));
+  try {
+    const json = await generateJSON(prompt);
+    return NextResponse.json(json);
+  } catch (err) {
+    console.error("[/api/petition]", err);
+    return NextResponse.json(
+      { error: "Petition generation failed. Please try again." },
+      { status: 502 }
+    );
+  }
 }

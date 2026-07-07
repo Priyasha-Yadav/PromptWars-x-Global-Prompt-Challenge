@@ -16,9 +16,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable}`} data-scroll-behavior="smooth">
       <body>
+        <a href="#main-content" style={{ position: "absolute", left: "-9999px", top: "auto", width: 1, height: 1, overflow: "hidden" }} className="skip-link">Skip to main content</a>
         <div className="app-shell">
           <SiteNav />
-          <main className="app-main">{children}</main>
+          <main id="main-content" className="app-main">{children}</main>
           <Footer />
         </div>
       </body>

@@ -159,6 +159,7 @@ export default function TranslatorTool() {
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                       <span style={{ fontSize: 11, fontWeight: 700, color: "var(--accent)", textTransform: "uppercase", letterSpacing: 1 }}>✦ Official Version</span>
                       <button onClick={() => copyText(result.result!)}
+                        aria-label="Copy official version"
                         style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4, fontSize: 12, padding: "4px 8px", borderRadius: 6, transition: "color 0.2s" }}>
                         {copied ? <><Check size={12} style={{ color: "var(--success)" }} /> Copied</> : <><Copy size={12} /> Copy</>}
                       </button>
@@ -264,6 +265,7 @@ export default function TranslatorTool() {
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                       <span style={{ fontSize: 11, fontWeight: 700, color: "var(--accent)", textTransform: "uppercase", letterSpacing: 1 }}>✦ Improved Version</span>
                       <button onClick={() => copyText(result.rewritten!)}
+                        aria-label="Copy improved version"
                         style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4, fontSize: 12 }}>
                         {copied ? <><Check size={12} style={{ color: "var(--success)" }} /> Copied</> : <><Copy size={12} /> Copy</>}
                       </button>

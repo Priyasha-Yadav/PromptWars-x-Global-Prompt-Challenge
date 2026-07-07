@@ -40,27 +40,27 @@ export default function InputForm({ onSubmit, loading }: Props) {
         {/* Location + Category row */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", marginBottom: 7, display: "block", textTransform: "uppercase", letterSpacing: 0.8 }}>
+            <label htmlFor="input-location" style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", marginBottom: 7, display: "block", textTransform: "uppercase", letterSpacing: 0.8 }}>
               Location
             </label>
             <div style={{ position: "relative" }}>
-              <MapPin size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)", pointerEvents: "none" }} />
-              <input className="input-field" style={{ paddingLeft: 34 }}
+              <MapPin size={14} aria-hidden="true" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)", pointerEvents: "none" }} />
+              <input id="input-location" className="input-field" style={{ paddingLeft: 34 }}
                 placeholder="e.g. MG Road, Bengaluru"
                 value={location} onChange={e => setLocation(e.target.value)} />
             </div>
           </div>
 
           <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", marginBottom: 7, display: "block", textTransform: "uppercase", letterSpacing: 0.8 }}>
+            <label htmlFor="input-category" style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", marginBottom: 7, display: "block", textTransform: "uppercase", letterSpacing: 0.8 }}>
               Category
             </label>
             <div style={{ position: "relative" }}>
-              <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", fontSize: 14, pointerEvents: "none" }}>
+              <span aria-hidden="true" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", fontSize: 14, pointerEvents: "none" }}>
                 {category ? CATEGORY_ICONS[category] : "📂"}
               </span>
-              <ChevronDown size={13} style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)", pointerEvents: "none" }} />
-              <select className="input-field" value={category} onChange={e => setCategory(e.target.value)}
+              <ChevronDown size={13} aria-hidden="true" style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)", pointerEvents: "none" }} />
+              <select id="input-category" className="input-field" value={category} onChange={e => setCategory(e.target.value)}
                 style={{ cursor: "pointer", paddingLeft: 34, paddingRight: 32, appearance: "none" }}>
                 <option value="" style={{ background: "#090e1c" }}>Select category</option>
                 {CATEGORIES.map(c => (
@@ -73,30 +73,31 @@ export default function InputForm({ onSubmit, loading }: Props) {
 
         {/* Complaint textarea */}
         <div>
-          <label style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", marginBottom: 7, display: "flex", justifyContent: "space-between", textTransform: "uppercase", letterSpacing: 0.8 }}>
+          <label htmlFor="input-complaint" style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", marginBottom: 7, display: "flex", justifyContent: "space-between", textTransform: "uppercase", letterSpacing: 0.8 }}>
             <span>Your Complaint</span>
-            <span style={{ color: charColor, fontWeight: 500, textTransform: "none", letterSpacing: 0 }}>
+            <span aria-live="polite" style={{ color: charColor, fontWeight: 500, textTransform: "none", letterSpacing: 0 }}>
               {text.length < 20 && text.length > 0 ? `${20 - text.length} more chars needed` : `${text.length} chars`}
             </span>
           </label>
-          <textarea className="input-field" rows={5}
+          <textarea id="input-complaint" className="input-field" rows={5}
             placeholder="Describe the issue in your own words. Be specific — mention how long it's been, who is affected, and what you've already tried."
             value={text} onChange={e => setText(e.target.value)}
             style={{ resize: "vertical", lineHeight: 1.7 }} />
         </div>
 
         {/* Progress indicator */}
-        <div style={{ display: "flex", gap: 6 }}>
+        <div role="progressbar" aria-label="Form completion" aria-valuenow={[!!location.trim(), !!category, text.trim().length > 20].filter(Boolean).length} aria-valuemin={0} aria-valuemax={3} style={{ display: "flex", gap: 6 }}>
           {[!!location.trim(), !!category, text.trim().length > 20].map((done, i) => (
             <div key={i} style={{ flex: 1, height: 3, borderRadius: 2, background: done ? "var(--accent)" : "rgba(255,255,255,.08)", transition: "background 0.3s" }} />
           ))}
         </div>
 
-        <button className="btn-primary" disabled={!valid || loading} onClick={() => onSubmit({ text, location, category })}
-          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 14, padding: "13px 24px" }}>
+        <button type="button" className="btn-primary" disabled={!valid || loading} onClick={() => onSubmit({ text, location, category })}
+          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 14, padding: "13px 24px" }}
+          aria-busy={loading}>
           {loading
-            ? <><Loader2 size={15} className="animate-spin" /> Generating your civic draft…</>
-            : <><Sparkles size={15} /> Generate Civic Draft</>}
+            ? <><Loader2 size={15} className="animate-spin" aria-hidden="true" /> Generating your civic draft…</>
+            : <><Sparkles size={15} aria-hidden="true" /> Generate Civic Draft</>}
         </button>
       </div>
     </motion.div>

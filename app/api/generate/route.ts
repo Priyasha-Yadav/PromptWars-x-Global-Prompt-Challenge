@@ -1,10 +1,21 @@
-import { GoogleGenAI } from "@google/genai";
 import { NextRequest, NextResponse } from "next/server";
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+import { generateJSON } from "@/lib/gemini";
+import { validateGenerate } from "@/lib/validation";
 
 export async function POST(req: NextRequest) {
-  const { text, location, category } = await req.json();
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+  }
+
+  const validation = validateGenerate(body);
+  if (!validation.ok) {
+    return NextResponse.json({ error: validation.error }, { status: validation.status });
+  }
+
+  const { text, location, category } = validation.data;
 
   const prompt = `You are a civic complaint transformation engine for Indian citizens.
 
@@ -26,42 +37,33 @@ Return ONLY valid JSON matching this EXACT schema (no extra keys):
   "score": 0,
   "scoreFeedback": "brief explanation of the score",
   "improvements": ["suggestion 1", "suggestion 2", "suggestion 3"],
-
   "impact": {
     "resolutionLikelihood": "Low|Medium|High",
-    "likelihoodReason": "one sentence reason based on issue type and public safety",
-    "expectedTimeline": "e.g. 30–45 days",
+    "likelihoodReason": "one sentence reason",
+    "expectedTimeline": "e.g. 30-45 days",
     "timelineCategory": "Urgent|1 week|1 month|3 months",
     "similarComplaints": [
       { "category": "string", "issue": "string", "resolvedIn": "string", "department": "string", "resolution": "string" },
       { "category": "string", "issue": "string", "resolvedIn": "string", "department": "string", "resolution": "string" },
       { "category": "string", "issue": "string", "resolvedIn": "string", "department": "string", "resolution": "string" }
     ],
-    "successStory": {
-      "problem": "string",
-      "action": "string",
-      "outcome": "string"
-    }
+    "successStory": { "problem": "string", "action": "string", "outcome": "string" }
   },
-
-  "collective": {
-    "clusterKeywords": ["keyword1", "keyword2"],
-    "severityScore": 7
-  }
+  "collective": { "clusterKeywords": ["keyword1", "keyword2"], "severityScore": 7 }
 }
 
-Scoring rules:
-- score out of 100: specificity (30pts), clarity (25pts), actionability (25pts), evidence mentioned (20pts)
-- impact.similarComplaints: 3 real-pattern civic complaints from India similar to this one
-- impact.successStory: ONE hypothetical illustrative example of a similar issue resolved — clearly fictional
-- collective.severityScore: integer 1–10 based on public impact`;
+Scoring: score out of 100 — specificity (30pts), clarity (25pts), actionability (25pts), evidence mentioned (20pts).
+impact.successStory must be a clearly fictional illustrative example.
+collective.severityScore: integer 1-10 based on public impact.`;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
-    contents: prompt,
-    config: { responseMimeType: "application/json" },
-  });
-
-  const json = JSON.parse(response.text!);
-  return NextResponse.json(json);
+  try {
+    const json = await generateJSON(prompt);
+    return NextResponse.json(json);
+  } catch (err) {
+    console.error("[/api/generate]", err);
+    return NextResponse.json(
+      { error: "Failed to generate complaint. Please try again." },
+      { status: 502 }
+    );
+  }
 }
